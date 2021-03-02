@@ -1,0 +1,40 @@
+import BlynkLib
+import network
+import machine
+import time
+from random import randrange
+
+WIFI_SSID = "Your_WiFi_SSID"
+WIFI_PASS = "Your_WiFi_Password"
+
+BLYNK_AUTH = "Your_Auth_Token"
+
+print("Connecting to WiFi...")
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(WIFI_SSID, WIFI_PASS)
+while not wifi.isconnected():
+    pass
+
+print('IP:', wifi.ifconfig()[0])
+
+print("Connecting to Blynk...")
+blynk = BlynkLib.Blynk(BLYNK_AUTH)
+
+@blynk.ON("connected")
+def blynk_connected(ping):
+    print('Blynk ready. Ping:', ping, 'ms')
+
+@blynk.ON("disconnected")
+def blynk_disconnected():
+    print('Blynk disconnected')
+
+tmr_start_time = time.time()
+
+while True:
+    blynk.run()
+    
+    t = time.time()
+    if t - tmr_start_time > 1:
+        tmr_start_time += 1
+        blynk.virtual_write(0, randrange(255))
