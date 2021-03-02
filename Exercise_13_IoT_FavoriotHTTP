@@ -1,0 +1,61 @@
+import network
+import urequests as http
+import ujson
+import os
+
+from machine import Pin, SoftI2C
+from bme280 import BME280
+from time import sleep
+
+i2c = SoftI2C(scl = Pin(22), sda = Pin(21))
+bme = BME280(i2c=i2c)
+
+WIFI_SSID = "Your_WiFi_SSID"
+WIFI_PASS = "Your_WiFi_Password"
+
+print("""
+    ______                       _       __ 
+   / ____/___ __   ______  _____(_)___  / /_
+  / /_  / __ `/ | / / __ \/ ___/ / __ \/ __/
+ / __/ / /_/ /| |/ / /_/ / /  / / /_/ / /_  
+/_/    \__,_/ |___/\____/_/  /_/\____/\__/ v2.9.10""" + " (" + os.uname()[0] + ")\n")
+
+print("Connecting to WiFi...")
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(WIFI_SSID, WIFI_PASS)
+while not wifi.isconnected():
+    pass
+
+print('IP:', wifi.ifconfig()[0])
+
+print("Connecting to Favoriot...")
+
+while True:
+    
+    if not wifi.isconnected():
+        wifi.connect(WIFI_SSID, WIFI_PASS)
+        while not wifi.isconnected():
+            pass
+
+    try:
+        post_data = ujson.dumps({
+            'device_developer_id':'HibiscusSense@ariffinastute',
+            'data':{
+                'temperature':bme.values[0],
+                'humidity':bme.values[2]
+                }
+            })
+        
+        req = http.post(
+            'http://apiv2.favoriot.com/v2/streams',
+            headers = {
+                'content-type':'application/json',
+                'apikey':'Uuj9VCtIp5vysPgOK4jx3sClHswjt4Xe'
+            },
+            data = post_data)
+        
+        print("HTTP success: " + req.text)
+    except:
+        print("HTTP error!")
+    sleep(10)
